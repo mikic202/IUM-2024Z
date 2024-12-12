@@ -9,12 +9,11 @@ def create_application() -> Flask:
 
     @app.route("/api/<resource_type>", methods=["POST"])
     def post_resource(resource_type):
-        return Response()
+        return resource_type
 
-    @app.route("/api/<resource_type>", methods=["GET"])
-    def get_resources(resource_type):
-
-        return Response()
+    @app.route("/api", methods=["GET"])
+    def get_resources():
+        return "Basic API Gateway"
 
     return app
 
