@@ -3,3 +3,7 @@ services:
         build: gateway
         ports:
             - "5001:5001"
+    model_api:
+        build: model_api
+        ports:
+            - "5000:5000"
