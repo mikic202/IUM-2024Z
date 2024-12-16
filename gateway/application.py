@@ -17,6 +17,14 @@ def create_application() -> Flask:
     def predict(prediction_type):
         return "!! NOT IMPLEMENTED !!"
 
+    @app.route("/api/user_model/update_user_preferences", methods=["POST"])
+    def update_user_preferences():
+        return "!! NOT IMPLEMENTED !!"
+
+    @app.route("/api/user_model/<model_tpye>/get_user_recomendations", methods=["GET"])
+    def get_user_recomendations(model_tpye):
+        return "!! NOT IMPLEMENTED !!"
+
     return app
 
 
