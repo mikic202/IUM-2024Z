@@ -9,7 +9,16 @@ def modify_tracks(tracks_file):
     modified_tracks = add_track_alterations_to_hot_one(tracks)
     modified_tracks = modified_tracks.apply(normalize_popularity, axis=1)
     modified_tracks = modified_tracks.apply(normalize_loudness, axis=1)
+    modified_tracks = modified_tracks.apply(remove_names, axis=1)
     modified_tracks.to_json("data_v2/tracks.jsonl", lines=True, orient="records")
+
+
+def remove_names(tracks):
+    """
+    Removes the name of the tracks.
+    """
+    tracks = tracks.drop("name")
+    return tracks
 
 
 def add_track_alterations_to_hot_one(tracks):
