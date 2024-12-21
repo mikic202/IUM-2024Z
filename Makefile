@@ -1,4 +1,5 @@
-EMBEDDING_MODEL_PATH = "models/embeding_models/embeding_v4_16_dim.pt"
+CONFIG = Makefile.conf
+include $(CONFIG)
 
 package_embeding_model:
 	@echo "Packaging embedding model"
