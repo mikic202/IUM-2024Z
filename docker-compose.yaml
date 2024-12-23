@@ -5,6 +5,8 @@ services:
       - "5001:5001"
     networks:
       - app_network
+    volumes:
+      - ./data_v2:/app/data
 
   model_api:
     build: ./model_api
