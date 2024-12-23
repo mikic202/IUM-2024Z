@@ -33,8 +33,18 @@ class TrackEmbedingsHandler:
         self.initialized = True
         logging.info(f"TrackEmbedingsHandler initialized")
 
+    @staticmethod
+    def postprocess_hash_to_list(x):
+        str_x = str(x)
+        if len(str_x) < 8:
+            str_x = "0" * (8 - len(str_x)) + str_x
+        return [int(x) for x in str_x]
+
     def preprocess(self, data):
         input_data = pd.Series(data[0].get("body"))
+        input_data["id_artist_hash"] = TrackEmbedingsHandler.postprocess_hash_to_list(
+            input_data["id_artist_hash"]
+        )
 
         unpacked_data = []
         for data in input_data.drop("id_track").values:
