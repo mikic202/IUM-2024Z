@@ -28,7 +28,7 @@ class TrackEmbedingsHandler:
         if not os.path.isfile(model_pt_path):
             raise RuntimeError("Missing the model.pt file")
 
-        self.model = torch.jit.load(model_pt_path)
+        self.model = torch.jit.load(model_pt_path, map_location=self.device)
 
         self.initialized = True
         logging.info(f"TrackEmbedingsHandler initialized")
@@ -41,7 +41,7 @@ class TrackEmbedingsHandler:
         return [int(x) for x in str_x]
 
     def preprocess(self, data):
-        input_data = pd.Series(data[0].get("body"))
+        input_data = pd.Series(data[0].get("body").get("data"))
         input_data["id_artist_hash"] = TrackEmbedingsHandler.postprocess_hash_to_list(
             input_data["id_artist_hash"]
         )
