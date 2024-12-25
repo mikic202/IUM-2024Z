@@ -54,7 +54,8 @@ class UserPreferencesHandler:
             for data in session:
                 unpacked_data = np.append(unpacked_data, data)
             sessions.append(torch.tensor(unpacked_data))
-        return torch.tensor(sessions).to(self.device)
+        sessions = torch.stack(sessions)
+        return torch.stack(sessions).float().to(self.device)
 
     def handle(self, data, _):
         data = self.preprocess(data)
