@@ -1,4 +1,8 @@
 import pandas as pd
+from datetime import datetime
+
+BASE_DATE = datetime.strptime("2025-01-03", '%Y-%m-%d').timestamp()
+
 
 
 def modify_tracks(tracks_file):
@@ -10,7 +14,22 @@ def modify_tracks(tracks_file):
     modified_tracks = modified_tracks.apply(normalize_popularity, axis=1)
     modified_tracks = modified_tracks.apply(normalize_loudness, axis=1)
     modified_tracks = modified_tracks.apply(remove_names, axis=1)
+
+    # NORMALIZE DATES
+    modified_tracks["release_date"] = (pd.to_datetime(modified_tracks["release_date"], format='mixed').apply(lambda x: x.timestamp())).div(BASE_DATE)
+
+    # NORMALIZE DURATION
+    modified_tracks["duration_ms"] = modified_tracks["duration_ms"].div(modified_tracks["duration_ms"].max())
+
+    # NORMALIZE TEMPO
+    modified_tracks["tempo"] = modified_tracks["tempo"].div(modified_tracks["tempo"].max())
+
+    # EXPLICITE ENCODING
+    modified_tracks["explicit"] = modified_tracks["explicit"].apply(lambda x: [0, 1] if x else [1, 0])
+
+
     modified_tracks.to_json("data_v2/tracks.jsonl", lines=True, orient="records")
+
 
 
 def remove_names(tracks):

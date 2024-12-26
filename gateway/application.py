@@ -34,36 +34,16 @@ def create_application() -> Flask:
 
             # Wysyłanie każdego utworu do torchserve
             for track in tracks:
-                # Przekształcenie explicit na listę [1, 0] lub [0, 1]
-                explicit = [1, 0] if track["explicit"] == 1 else [0, 1]
-
-                # Przekształcenie release_date na wartość numeryczną
-                try:
-                    release_date = float(track["release_date"])
-                except ValueError:
-                    release_date = 0.0  # Jeśli nie uda się przekonwertować, ustaw 0.0
 
                 # Przygotowanie danych w formacie oczekiwanym przez model API
-                data = {
-                    "id_track": track["id_track"],
-                    "popularity": track["popularity"],
-                    "duration_ms": track["duration_ms"],
-                    "explicit": explicit,
-                    "release_date": release_date,
-                    "danceability": track["danceability"],
-                    "energy": track["energy"],
-                    "key": track["key"],
-                    "loudness": track["loudness"],
-                    "speechiness": track["speechiness"],
-                    "acousticness": track["acousticness"],
-                    "instrumentalness": track["instrumentalness"],
-                    "liveness": track["liveness"],
-                    "valence": track["valence"],
-                    "tempo": track["tempo"],
-                    "type_hot_one": track["type_hot_one"],
-                    "id_artist_hash": track["id_artist_hash"],
-                    "genre_hot_one": track["genre_hot_one"]
-                }
+                fields = [
+                    "id_track", "popularity", "duration_ms", "explicit", "release_date",
+                    "danceability", "energy", "key", "loudness", "speechiness", "acousticness",
+                    "instrumentalness", "liveness", "valence", "tempo", "type_hot_one",
+                    "id_artist_hash", "genre_hot_one"
+                ]
+
+                data = {field: track[field] for field in fields}
 
                 # Wysłanie danych do modelu API
                 response = requests.post(
