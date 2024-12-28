@@ -3,8 +3,12 @@ from typing import List, Tuple
 import requests
 import json
 import glob
+import os
+import re
+from datetime import datetime
 
 PREDICTION_TYPES = ["classification", "regression"]
+BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
 
 
 def create_application() -> Flask:
@@ -21,7 +25,8 @@ def create_application() -> Flask:
     @app.route("/api/user_model/update_user_preferences", methods=["GET"])
     def update_user_preferences():
         user_preferences = []
-        for user_id in range(101, 1101):
+        user_sesions_files = glob.glob("/app/data/sessions/sessions_user_*.jsonl")
+        for user_id in user_sesions_files:
             user_preferences.append(
                 {
                     "preferences": get_user_preferences_from_model(user_id),
@@ -131,14 +136,45 @@ def read_jsonl(file_path):
             yield json.loads(line)
 
 
-def get_user_preferences_from_model(user_id: int):
-    user_sessions = glob.glob(f"/app/data/sessions/sessions_user_{user_id}.jsonl")
-    if len(user_sessions) != 1:
-        raise ValueError(f"User {user_id} has {len(user_sessions)} sessions")
-    user_sessions = list(read_jsonl(user_sessions[0]))
-    dummy_user_preference = [0] * 8
-    # here sending requests to model and returning user preferences
-    return dummy_user_preference
+def transform_event_type_to_one_hot(event_type: str) -> List[int]:
+    if event_type not in ["like", "play", "skip"]:
+        raise ValueError(f"Event type {event_type} not supported")
+    return [
+        1.0 if event_type == "like" else 0.0,
+        1.0 if event_type == "play" else 0.0,
+        1.0 if event_type == "skip" else 0.0,
+    ]
+
+
+def process_sesions(sessions: List[dict]) -> Tuple[List[dict], List[dict]]:
+    with open("/app/data/embeddings.json") as f:
+        embeddings = json.load(f)
+    for sesion in sessions:
+        tracks_embedings = list(
+            filter(lambda x: x["id_track"] == sesion["track_id"], embeddings)
+        )[0]
+        sesion["timestamp"] = (
+            datetime.strptime(sesion["timestamp"], "%Y-%m-%dT%H:%M:%S.%f").timestamp()
+            / BASE_DATE
+        )
+        sesion["embeding"] = tracks_embedings["embedding"]
+        sesion["embeding"] = [float(x) for x in sesion["embeding"]][:8]
+        sesion["event_type"] = transform_event_type_to_one_hot(sesion["event_type"])
+    return sessions
+
+
+def get_user_preferences_from_model(user_sessions_file: str):
+    user_sessions = sorted(
+        [sesion for sesion in read_jsonl(user_sessions_file)],
+        key=lambda x: x["timestamp"],
+    )[:40]
+    user_sessions = process_sesions(user_sessions)
+    response = requests.post(
+        "http://ium-2024z-model_api-1:8080/predictions/recomendations_model",
+        json={"data": user_sessions},
+        headers={"Content-Type": "application/json"},
+    )
+    return response.json()
 
 
 if __name__ == "__main__":
