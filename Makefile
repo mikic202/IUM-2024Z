@@ -7,4 +7,12 @@ package_embeding_model:
 
 package_recommendation:
 	@echo "Packaging recommendation"
-	@./scripts/zip_recomendation_model.sh $(EMBEDDING_MODEL_PATH)
+	@./scripts/zip_recomendation_model.sh $(RECOMMENDATION_MODEL_PATH)
+
+change_recomendations_model:
+	@echo "Changing recomendations model"
+	@./scripts/reload_recomendations_model.sh $(RECOMMENDATION_MODEL)
+
+change_embeding_model:
+	@echo "Changing embeding model"
+	@./scripts/reload_embeding_model.sh $(EMBEDDING_MODEL)
