@@ -13,8 +13,8 @@ MODEL_NAME="recomendations_v$NUMBER_OF_VERSIONS"
 
 torch-model-archiver --model-name $MODEL_NAME \
     --version $NUMBER_OF_VERSIONS \
-    --model-file model_builder/TrackEmbedingsHandler.py \
+    --model-file model_builder/UserPreferencesHandler.py \
     --serialized-file $1 \
-    --handler model_builder/TrackEmbedingsHandler.py \
+    --handler model_builder/UserPreferencesHandler.py \
     --force \
     --export-path model_api/recomendation_models
