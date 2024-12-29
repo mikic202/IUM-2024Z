@@ -18,27 +18,34 @@ def create_application() -> Flask:
     def get_resources():
         return requests.get("http://model_api:8080/ping").text
 
-    @app.route("/api/predict/<prediction_type>", methods=["POST"])
-    def predict(prediction_type):
-        return "!! NOT IMPLEMENTED !!"
-
-    @app.route("/api/user_model/update_user_preferences", methods=["GET"])
+    @app.route("/api/user_model/update_user_preferences", methods=["POST"])
     def update_user_preferences():
         user_preferences = []
-        user_sesions_files = glob.glob("/app/data/sessions/sessions_user_*.jsonl")
-        for user_id in user_sesions_files:
-            user_preferences.append(
+        try:
+            user_sesions_files = glob.glob("/app/data/sessions/sessions_user_*.jsonl")
+            user_preferences = [
                 {
                     "preferences": get_user_preferences_from_model(user_id),
-                    "user_id": user_id,
+                    "user_id": user_id.split("_")[-1].split(".")[0],
                 }
+                for user_id in user_sesions_files
+            ]
+            json.dump(
+                user_preferences, open("/app/data/user_preferences.json", "w"), indent=4
             )
-
-        json.dump(
-            user_preferences, open("/app/data/user_preferences.json", "w"), indent=4
-        )
+        except Exception:
+            return Response(
+                json.dumps({"status": "error"}),
+                mimetype="application/json",
+                status=500,
+            )
         return Response(
-            json.dumps({"status": "success", "user_preferences": user_preferences}),
+            json.dumps(
+                {
+                    "status": "success",
+                    "message": "Updated user preferences for all users in the database",
+                }
+            ),
             mimetype="application/json",
             status=200,
         )
@@ -48,8 +55,16 @@ def create_application() -> Flask:
         user_preferences = json.load(open("/app/data/user_preferences.json", "r"))
         for user_preference in user_preferences:
             if int(user_preference["user_id"]) == int(user_id):
-                return user_preference
-        return {"error": f"User {user_id} not found"}
+                return Response(
+                    json.dumps(user_preference),
+                    mimetype="application/json",
+                    status=200,
+                )
+        return Response(
+            {"status": "error", "message": f"User {user_id} not found"},
+            status=404,
+            mimetype="application/json",
+        )
 
     @app.route("/api/user_model/<model_tpye>/get_user_recomendations", methods=["GET"])
     def get_user_recomendations(model_tpye):
