@@ -203,7 +203,7 @@ def process_sesions(sessions: List[dict]) -> Tuple[List[dict], List[dict]]:
             / BASE_DATE
         )
         sesion["embeding"] = tracks_embedings["embedding"]
-        sesion["embeding"] = [float(x) for x in sesion["embeding"]][:8]
+        sesion["embeding"] = [float(x) for x in sesion["embeding"]]
         sesion["event_type"] = transform_event_type_to_one_hot(sesion["event_type"])
     return sessions
 
