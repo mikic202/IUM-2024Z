@@ -6,8 +6,18 @@ import glob
 import os
 import re
 from datetime import datetime
+import math
 
-PREDICTION_TYPES = ["classification", "regression"]
+
+def get_embeding_to_compare_for_advanced_model(user_id: int):
+    user_preferences = json.load(open("/app/data/user_preferences.json", "r"))
+    for user_preference in user_preferences:
+        if int(user_preference["user_id"]) == int(user_id):
+            return user_preference["preferences"][0]
+    return None
+
+
+MODEL_TYPES = {"simple": None, "complex": get_embeding_to_compare_for_advanced_model}
 BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
 
 
@@ -66,9 +76,29 @@ def create_application() -> Flask:
             mimetype="application/json",
         )
 
-    @app.route("/api/user_model/<model_tpye>/get_user_recomendations", methods=["GET"])
-    def get_user_recomendations(model_tpye):
-        return "!! NOT IMPLEMENTED !!"
+    @app.route(
+        "/api/user_model/<model_type>/get_user_recomendations/<user_id>",
+        methods=["GET"],
+    )
+    def get_user_recomendations(model_type: str, user_id: int):
+        if model_type not in MODEL_TYPES:
+            return Response(
+                json.dumps({"status": "error", "message": "Model type not found"}),
+                mimetype="application/json",
+                status=400,
+            )
+        embeding_to_compare = MODEL_TYPES[model_type](user_id)
+        with open("/app/data/embeddings.json") as f:
+            embeddings = json.load(f)
+        best_tracks = sorted(
+            list(embeddings),
+            key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
+        )[:20]
+        return Response(
+            json.dumps({"status": "success", "recomended_tracks": best_tracks}),
+            mimetype="application/json",
+            status=200,
+        )
 
     @app.route("/api/embedding", methods=["POST"])
     def create_embeddings():
