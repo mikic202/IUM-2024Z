@@ -134,7 +134,7 @@ def create_application() -> Flask:
     def ab_test():
 
         try:
-            num_users = 10  
+            num_users = 100  
             user_ids = random.sample(range(101, 1101), num_users)
             
             results = []
@@ -252,7 +252,7 @@ def log_experiment_result(user_id: int, model_type: str, recommended_tracks: lis
     }
 
     # Zapisywanie do pliku logu
-    with open("/app/data/ab_experiment_log.json", "a") as log_file:
+    with open("/app/data/ab_experiment_log.jsonl", "a") as log_file:
         log_file.write(json.dumps(log_data) + "\n")
 
 
