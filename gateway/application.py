@@ -16,8 +16,20 @@ def get_embeding_to_compare_for_advanced_model(user_id: int):
             return user_preference["preferences"][0]
     return None
 
+def get_embeding_to_compare_for_simple_model(user_id: int):
+    track_embeddings = json.load(open("/app/data/embeddings.json", 'r'))
+    user_session = list(read_jsonl(f'/app/data/sessions/sessions_user_{user_id}.jsonl'))
 
-MODEL_TYPES = {"simple": None, "complex": get_embeding_to_compare_for_advanced_model}
+    filtered_data = [session for session in user_session if session['event_type'] == 'like']
+    last_liked_track = max(filtered_data, key=lambda x: x['timestamp'])    
+    last_track_id = last_liked_track['track_id']
+    track_row = next((track for track in track_embeddings if track["id_track"] == last_track_id), None)
+    embedding_last_liked = track_row['embedding']
+    return embedding_last_liked
+
+
+
+MODEL_TYPES = {"simple": get_embeding_to_compare_for_simple_model, "complex": get_embeding_to_compare_for_advanced_model}
 BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
 
 
