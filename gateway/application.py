@@ -3,7 +3,7 @@ from typing import List, Tuple
 import requests
 import json
 import glob
-import os
+import random
 import re
 from datetime import datetime
 import math
@@ -129,6 +129,34 @@ def create_application() -> Flask:
             mimetype="application/json",
             status=200,
         )
+    
+    @app.route("/api/ab_test/<user_id>", methods=["GET"])
+    def ab_test(user_id: int):
+        model_type = random.choice(["simple", "complex"])
+        try:
+            response = get_user_recomendations(model_type, user_id)
+            
+            response_data = json.loads(response.data)
+            recommended_tracks = response_data.get("recomended_tracks", [])
+
+            if recommended_tracks:
+                best_track = recommended_tracks[0]
+                log_experiment_result(user_id, model_type, best_track, "success")
+            else:
+                log_experiment_result(user_id, model_type, {}, "no_tracks_found")
+
+            return response
+            
+        except Exception as e:
+            log_experiment_result(user_id, model_type, {}, f"error: {str(e)}")
+            
+            return Response(
+                json.dumps({"status": "error", "message": str(e)}),
+                mimetype="application/json",
+                status=500,
+            )
+
+
 
     @app.route("/api/embedding", methods=["POST"])
     def create_embeddings():
@@ -196,8 +224,24 @@ def create_application() -> Flask:
                 mimetype="application/json",
                 status=500,
             )
+        
 
     return app
+
+# Funkcja do zapisania danych logów
+def log_experiment_result(user_id: int, model_type: str, recommended_tracks: list, status: str):
+    log_data = {
+        "user_id": user_id,
+        "model_type": model_type,
+        "timestamp": datetime.now().isoformat(),
+        "recommended_tracks": recommended_tracks,
+        "status": status
+    }
+
+    # Zapisywanie do pliku logu
+    with open("/app/data/ab_experiment_log.json", "a") as log_file:
+        log_file.write(json.dumps(log_data) + "\n")
+
 
 
 def read_jsonl(file_path):
