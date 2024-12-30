@@ -25,7 +25,7 @@ def get_embeding_to_compare_for_simple_model(user_id: int):
     last_track_id = last_liked_track['track_id']
     track_row = next((track for track in track_embeddings if track["id_track"] == last_track_id), None)
     embedding_last_liked = track_row['embedding']
-    return embedding_last_liked
+    return (embedding_last_liked, last_track_id)
 
 
 
@@ -102,6 +102,24 @@ def create_application() -> Flask:
         embeding_to_compare = MODEL_TYPES[model_type](user_id)
         with open("/app/data/embeddings.json") as f:
             embeddings = json.load(f)
+        if model_type == "simple":
+            user_data = list(read_jsonl("/app/data/users.jsonl")) 
+            tracks_data = list(read_jsonl('/app/data/tracks_artists.jsonl'))
+    
+            new_embeddings = []
+            id_track = embeding_to_compare[1]
+            embeding_to_compare = embeding_to_compare[0]
+            user = next(item for item in user_data if int(item['user_id']) == int(user_id))
+            user_genre = user['genre_hot_one']
+            for i, row in enumerate(embeddings):
+                if row['id_track'] == id_track:
+                    continue
+                track_genre = tracks_data[i]['genre_hot_one']
+                if any(u == 1 and t == 1 for u, t in zip(user_genre, track_genre)):
+                    new_embeddings.append(row)
+            embeddings = new_embeddings
+
+
         best_tracks = sorted(
             list(embeddings),
             key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
@@ -115,14 +133,11 @@ def create_application() -> Flask:
     @app.route("/api/embedding", methods=["POST"])
     def create_embeddings():
         try:
-            # Wczytanie danych z pliku .jsonl
             tracks = list(read_jsonl("/app/data/tracks_artists.jsonl"))
             embeddings = []
 
-            # Wysyłanie każdego utworu do torchserve
             for track in tracks:
 
-                # Przygotowanie danych w formacie oczekiwanym przez model API
                 fields = [
                     "id_track",
                     "popularity",
@@ -146,14 +161,13 @@ def create_application() -> Flask:
 
                 data = {field: track[field] for field in fields}
 
-                # Wysłanie danych do modelu API
                 response = requests.post(
                     "http://ium-2024z-model_api-1:8080/predictions/embeding_model",
                     json={"data": data},
                     headers={"Content-Type": "application/json"},
                 )
 
-                # Jeśli odpowiedź jest poprawna
+
                 if response.status_code == 200:
                     embedding = response.json()
                     print("Embedding received:", embedding)
@@ -168,7 +182,6 @@ def create_application() -> Flask:
                         }
                     )
 
-            # Zapisanie embeddingów do pliku JSON w folderze data_v2
             with open("/app/data/embeddings.json", "w") as f:
                 json.dump(embeddings, f, indent=4)
 
