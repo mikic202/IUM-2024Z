@@ -130,31 +130,44 @@ def create_application() -> Flask:
             status=200,
         )
     
-    @app.route("/api/ab_test/<user_id>", methods=["GET"])
-    def ab_test(user_id: int):
-        model_type = random.choice(["simple", "complex"])
+    @app.route("/api/ab_test", methods=["POST"])
+    def ab_test():
+
         try:
-            response = get_user_recomendations(model_type, user_id)
+            num_users = 10  
+            user_ids = random.sample(range(101, 1101), num_users)
             
-            response_data = json.loads(response.data)
-            recommended_tracks = response_data.get("recomended_tracks", [])
+            results = []
+            for user_id in user_ids:
+                model_type = random.choice(["simple", "complex"])
 
-            if recommended_tracks:
-                best_track = recommended_tracks[0]
-                log_experiment_result(user_id, model_type, best_track, "success")
-            else:
-                log_experiment_result(user_id, model_type, {}, "no_tracks_found")
+                try:
+                    response = get_user_recomendations(model_type, user_id)
 
-            return response
+                    response_data = json.loads(response.data)
+                    recommended_tracks = response_data.get("recomended_tracks", [])
+
+                    best_track = recommended_tracks[0]
+                    log_experiment_result(user_id, model_type, best_track, "success")
+                    results.append({"user_id": user_id, "status": "success", "best_track": best_track})
+                
+                except Exception as e:
+                    log_experiment_result(user_id, model_type, {}, f"error: {str(e)}")
+                    results.append({"user_id": user_id, "status": f"error: {str(e)}"})
             
+            return Response(
+                json.dumps({"status": "success", "results": results}),
+                mimetype="application/json",
+                status=200,
+            )
+    
         except Exception as e:
-            log_experiment_result(user_id, model_type, {}, f"error: {str(e)}")
-            
             return Response(
                 json.dumps({"status": "error", "message": str(e)}),
                 mimetype="application/json",
                 status=500,
             )
+
 
 
 
