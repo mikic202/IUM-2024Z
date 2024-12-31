@@ -307,7 +307,7 @@ def get_user_preferences_from_model(user_sessions_file: str):
     user_sessions = sorted(
         [sesion for sesion in read_jsonl(user_sessions_file)],
         key=lambda x: x["timestamp"],
-    )[:5]
+    )[:20]
     user_sessions = process_sesions(user_sessions)
     response = requests.post(
         "http://ium-2024z-model_api-1:8080/predictions/recomendations_model",
