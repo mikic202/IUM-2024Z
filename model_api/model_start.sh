@@ -12,8 +12,8 @@ echo "Starting model server with model $HIGHEST_VERSION_FILE"
 echo "Starting recomandation server with model $HIGHEST_RECOMENDATION_VERSION_FILE"
 
 mkdir -p $MAIN_MODEL_STORE
-cp -r $MODEL_DIR/$HIGHEST_VERSION_FILE $MAIN_MODEL_STORE/
-cp -r $RECOMANDATIONS_MODEL_DIR/$HIGHEST_RECOMENDATION_VERSION_FILE $MAIN_MODEL_STORE/
+cp -r $MODEL_DIR/* $MAIN_MODEL_STORE/
+cp -r $RECOMANDATIONS_MODEL_DIR/* $MAIN_MODEL_STORE/
 
 torchserve --start --model-store $MAIN_MODEL_STORE --models embeding_model="$HIGHEST_VERSION_FILE" recomendations_model="$HIGHEST_RECOMENDATION_VERSION_FILE" --ts-config config.properties --disable-token-auth --enable-model-api
 
