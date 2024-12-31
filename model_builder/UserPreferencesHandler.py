@@ -32,6 +32,7 @@ class UserPreferencesHandler:
         self.model = torch.jit.load(model_pt_path, map_location=self.device)
 
         self.initialized = True
+        self.model.eval()
         logging.info(f"UserPreferencesHandler initialized")
 
     @staticmethod
@@ -59,6 +60,10 @@ class UserPreferencesHandler:
 
     def handle(self, data, _):
         data = self.preprocess(data)
+        self.model.hidden = (
+            torch.zeros(self.model.num_layers, 1, self.model.hidden_size),
+            torch.zeros(self.model.num_layers, 1, self.model.hidden_size),
+        )
         pred_out = self.model.forward(
             data, torch.tensor([len(data[0])]).int().to(self.device)
         )
