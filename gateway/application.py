@@ -111,24 +111,11 @@ def create_application() -> Flask:
         with open("/app/data/embeddings.json") as f:
             embeddings = json.load(f)
         if model_type == "simple":
-            user_data = list(read_jsonl("/app/data/users.jsonl"))
-            tracks_data = list(read_jsonl("/app/data/tracks_artists.jsonl"))
-
-            new_embeddings = []
             id_track = embeding_to_compare[1]
             embeding_to_compare = embeding_to_compare[0]
-            user = next(
-                item for item in user_data if int(item["user_id"]) == int(user_id)
-            )
-            user_genre = user["genre_hot_one"]
-            for i, row in enumerate(embeddings):
-                if row["id_track"] == id_track:
-                    continue
-                track_genre = tracks_data[i]["genre_hot_one"]
-                if any(u == 1 and t == 1 for u, t in zip(user_genre, track_genre)):
-                    new_embeddings.append(row)
+            new_embeddings = embeddings_for_simple_model(embeddings, user_id, id_track)
             embeddings = new_embeddings
-
+            
         best_tracks = sorted(
             list(embeddings),
             key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
@@ -143,7 +130,7 @@ def create_application() -> Flask:
     def ab_test():
 
         try:
-            num_users = 100
+            num_users = 10
             user_ids = random.sample(range(101, 1101), num_users)
 
             results = []
@@ -232,7 +219,24 @@ def create_application() -> Flask:
     return app
 
 
-# Funkcja do zapisania danych logów
+def embeddings_for_simple_model(embeddings, user_id, id_track):
+    user_data = list(read_jsonl("/app/data/users.jsonl"))
+    tracks_data = list(read_jsonl("/app/data/tracks_artists.jsonl"))
+
+    new_embeddings = []
+    user = next(
+        item for item in user_data if int(item["user_id"]) == int(user_id)
+    )
+    user_genre = user["genre_hot_one"]
+    for i, row in enumerate(embeddings):
+        if row["id_track"] == id_track:
+            continue
+        track_genre = tracks_data[i]["genre_hot_one"]
+        if any(u == 1 and t == 1 for u, t in zip(user_genre, track_genre)):
+            new_embeddings.append(row)
+    return new_embeddings
+
+
 def log_experiment_result(
     user_id: int, model_type: str, recommended_tracks: list, status: str
 ):
@@ -244,7 +248,6 @@ def log_experiment_result(
         "status": status,
     }
 
-    # Zapisywanie do pliku logu
     with open("/app/data/ab_experiment_log.jsonl", "a") as log_file:
         log_file.write(json.dumps(log_data) + "\n")
 
