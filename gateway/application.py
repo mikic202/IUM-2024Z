@@ -189,31 +189,11 @@ def create_application() -> Flask:
             tracks = list(read_jsonl("/app/data/tracks_artists.jsonl"))
             embeddings = []
 
+            fields = tracks[0].keys()
+
             for track in tracks:
 
-                fields = [
-                    "id_track",
-                    "popularity",
-                    "duration_ms",
-                    "explicit",
-                    "release_date",
-                    "danceability",
-                    "energy",
-                    "key",
-                    "loudness",
-                    "speechiness",
-                    "acousticness",
-                    "instrumentalness",
-                    "liveness",
-                    "valence",
-                    "tempo",
-                    "type_hot_one",
-                    "id_artist_hash",
-                    "genre_hot_one",
-                ]
-
                 data = {field: track[field] for field in fields}
-
                 response = requests.post(
                     "http://ium-2024z-model_api-1:8080/predictions/embeding_model",
                     json={"data": data},
