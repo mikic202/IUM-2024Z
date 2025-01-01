@@ -1,4 +1,4 @@
-from flask import Response
+from flask import Response, Flask
 import requests
 import json
 import math
@@ -44,11 +44,11 @@ MODEL_TYPES = {
 }
 BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
 
-MODEL_API_URL = "http://model_api"
+MODEL_API_URL = "http://model_api:8080"
 
 
 class Gateway:
-    def __init__(self, app, **configs) -> None:
+    def __init__(self, app: Flask, **configs) -> None:
         self.app = app
         self.configs(**configs)
         with open("/app/data/embeddings.json") as f:
@@ -97,7 +97,7 @@ class Gateway:
         )
 
     def get_status(self):
-        return requests.get("http://model_api:8080/ping").text
+        return requests.get(MODEL_API_URL + "/ping").text
 
     def get_user_preferences(self, user_id: int):
         user_preferences = json.load(open("/app/data/user_preferences.json", "r"))
@@ -234,7 +234,7 @@ class Gateway:
 
                 data = {field: track[field] for field in fields}
                 response = requests.post(
-                    "http://ium-2024z-model_api-1:8080/predictions/embeding_model",
+                    MODEL_API_URL + "/predictions/embeding_model",
                     json={"data": data},
                     headers={"Content-Type": "application/json"},
                 )
@@ -338,7 +338,7 @@ class Gateway:
         )[:50]
         user_sessions = self.process_user_sesions(user_sessions)
         response = requests.post(
-            "http://ium-2024z-model_api-1:8080/predictions/recomendations_model",
+            MODEL_API_URL + "/predictions/recomendations_model",
             json={"data": user_sessions},
             headers={"Content-Type": "application/json"},
         )
