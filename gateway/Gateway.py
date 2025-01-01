@@ -121,8 +121,8 @@ class Gateway:
                 mimetype="application/json",
                 status=400,
             )
+        embeddings = self.embeddings.copy()
         embeding_to_compare = MODEL_TYPES[model_type](user_id)
-        embeddings = self.embeddings
         if model_type == "simple":
             id_track = embeding_to_compare[1]
             embeding_to_compare = embeding_to_compare[0]
@@ -137,7 +137,7 @@ class Gateway:
             list(embeddings),
             key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
         )[:20]
-        [track.pop("embedding", None) for track in best_tracks]
+        best_tracks = [{"id_track": track["id_track"]} for track in best_tracks]
         return Response(
             json.dumps({"status": "success", "recomended_tracks": best_tracks}),
             mimetype="application/json",
