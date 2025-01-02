@@ -136,7 +136,7 @@ class Gateway:
         best_tracks = sorted(
             list(embeddings),
             key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
-        )[:20]
+        )[:5]
         best_tracks = [{"id_track": track["id_track"]} for track in best_tracks]
         return Response(
             json.dumps({"status": "success", "recomended_tracks": best_tracks}),
@@ -162,7 +162,7 @@ class Gateway:
     def get_ab_test_data(self):
 
         try:
-            num_users = 10
+            num_users = 100
             user_ids = random.sample(range(101, 1101), num_users)
 
             results = []
@@ -175,15 +175,13 @@ class Gateway:
                     response_data = json.loads(response.data)
                     recommended_tracks = response_data.get("recomended_tracks", [])
 
-                    best_track = recommended_tracks[0]
                     self.log_experiment_result(
-                        user_id, model_type, best_track, "success"
+                        user_id, model_type, recommended_tracks, "success"
                     )
                     results.append(
                         {
                             "user_id": user_id,
                             "status": "success",
-                            "best_track": best_track,
                         }
                     )
 
