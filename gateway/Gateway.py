@@ -67,7 +67,7 @@ class Gateway:
             methods=["GET"],
         )
         self.add_endpoint(
-            "/api/ab_test", "api/ab_test", self.get_ab_test_data, methods=["POST"]
+            "/api/ab_test", "api/ab_test", self.get_ab_test_data, methods=["GET"]
         )
         self.add_endpoint(
             "/api/embedding", "api/embedding", self.create_embeddings, methods=["POST"]
@@ -162,12 +162,22 @@ class Gateway:
     def get_ab_test_data(self):
 
         try:
-            num_users = 100
-            user_ids = random.sample(range(101, 1101), num_users)
-
+            complex_model_user_ids_test = [687, 852, 528, 562, 426, 1092, 171, 250, 223, 265, 981, 607, 738, 1020, 510, 899, 596, 1047, 826, 669, 923, 905, 1063, 139, 1031]
+            filtered_numbers = [num for num in range(101, 1001) if num not in complex_model_user_ids_test]
+            simple_model_user_ids = random.sample(filtered_numbers, 400)
+            filtered_numbers = [num for num in range(101, 1001) if num not in simple_model_user_ids]
+            complex_model_user_ids_train = random.sample(filtered_numbers, 400)
             results = []
-            for user_id in user_ids:
-                model_type = random.choice(["simple", "complex"])
+            for index, user_id in enumerate(complex_model_user_ids_test + simple_model_user_ids + complex_model_user_ids_train):
+                if index < 25:
+                    model_type = "complex"
+                    data_type = "test"
+                elif index < 425:
+                    model_type = "simple"  
+                    data_type = "test"
+                else:
+                    model_type = "complex"
+                    data_type = "train"
 
                 try:
                     response = self.get_user_recomendations(model_type, user_id)
@@ -176,12 +186,13 @@ class Gateway:
                     recommended_tracks = response_data.get("recomended_tracks", [])
 
                     self.log_experiment_result(
-                        user_id, model_type, recommended_tracks, "success"
+                        user_id, model_type, recommended_tracks, "success", data_type
                     )
                     results.append(
                         {
                             "user_id": user_id,
                             "status": "success",
+                            
                         }
                     )
 
@@ -205,7 +216,7 @@ class Gateway:
             )
 
     def log_experiment_result(
-        self, user_id: int, model_type: str, recommended_tracks: list, status: str
+        self, user_id: int, model_type: str, recommended_tracks: list, status: str, data_type: str
     ):
         log_data = {
             "user_id": user_id,
@@ -213,6 +224,7 @@ class Gateway:
             "timestamp": datetime.now().isoformat(),
             "recommended_tracks": recommended_tracks,
             "status": status,
+            "data_type": data_type,
         }
 
         with open("/app/data/ab_experiment_log.jsonl", "a") as log_file:
