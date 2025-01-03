@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p model_api/recomendation_models
+mkdir -p model_api/track_embeding_models
 
 if [ "$2" = "force" ]; then
     COUNT=$(ls model_api/track_embeding_models | wc -l)
