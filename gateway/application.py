@@ -1,12 +1,5 @@
-from flask import Flask, request, Response
-from typing import List, Tuple
-import requests
-import json
-import glob
-import random
-import re
+from flask import Flask
 from datetime import datetime
-import math
 from Gateway import Gateway
 
 
