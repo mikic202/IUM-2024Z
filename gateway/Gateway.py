@@ -61,13 +61,13 @@ class Gateway:
             methods=["GET"],
         )
         self.add_endpoint(
-            "/api/user_model/<model_type>/get_user_recomendations/<user_id>",
+            "/api/user_model/get_user_recomendations/<user_id>",
             "api/user_model/get_user_recomendations",
             self.get_user_recomendations,
             methods=["GET"],
         )
         self.add_endpoint(
-            "/api/ab_test", "api/ab_test", self.get_ab_test_data, methods=["GET"]
+            "/api/test", "api/test", self.get_test_data, methods=["GET"]
         )
         self.add_endpoint(
             "/api/embedding", "api/embedding", self.create_embeddings, methods=["POST"]
@@ -114,13 +114,12 @@ class Gateway:
             mimetype="application/json",
         )
 
-    def get_user_recomendations(self, model_type: str, user_id: int):
-        if model_type not in MODEL_TYPES:
-            return Response(
-                json.dumps({"status": "error", "message": "Model type not found"}),
-                mimetype="application/json",
-                status=400,
-            )
+    def get_user_recomendations(self, user_id: int):
+        random.seed(datetime.now().timestamp())
+        if random.random() < 0.5:
+            model_type = "simple"
+        else:
+            model_type = "complex"
         embeddings = self.embeddings.copy()
         embeding_to_compare = MODEL_TYPES[model_type](user_id)
         if model_type == "simple":
@@ -138,6 +137,9 @@ class Gateway:
             key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
         )[:5]
         best_tracks = [{"id_track": track["id_track"]} for track in best_tracks]
+        self.log_experiment_result(
+                user_id, model_type, best_tracks, "success",  'ab_experiment_log'
+            )
         return Response(
             json.dumps({"status": "success", "recomended_tracks": best_tracks}),
             mimetype="application/json",
@@ -158,52 +160,22 @@ class Gateway:
             if any(u == 1 and t == 1 for u, t in zip(user_genre, track_genre)):
                 new_embeddings.append(row)
         return new_embeddings
+    
 
-    def get_ab_test_data(self):
-
+    def get_test_data(self):
         try:
-            complex_model_user_ids_test = [687, 852, 528, 562, 426, 1092, 171, 250, 223, 265, 981, 607, 738, 1020, 510, 899, 596, 1047, 826, 669, 923, 905, 1063, 139, 1031]
-            filtered_numbers = [num for num in range(101, 1001) if num not in complex_model_user_ids_test]
-            simple_model_user_ids = random.sample(filtered_numbers, 400)
-            filtered_numbers = [num for num in range(101, 1001) if num not in simple_model_user_ids]
-            complex_model_user_ids_train = random.sample(filtered_numbers, 400)
-            results = []
-            for index, user_id in enumerate(complex_model_user_ids_test + simple_model_user_ids + complex_model_user_ids_train):
-                if index < 25:
-                    model_type = "complex"
-                    data_type = "test"
-                elif index < 425:
-                    model_type = "simple"  
-                    data_type = "test"
-                else:
-                    model_type = "complex"
-                    data_type = "train"
-
+            for  user_id in range(101, 1001):
                 try:
-                    response = self.get_user_recomendations(model_type, user_id)
-
-                    response_data = json.loads(response.data)
-                    recommended_tracks = response_data.get("recomended_tracks", [])
-
-                    self.log_experiment_result(
-                        user_id, model_type, recommended_tracks, "success", data_type
-                    )
-                    results.append(
-                        {
-                            "user_id": user_id,
-                            "status": "success",
-                            
-                        }
-                    )
+                    self.get_user_recomendations(user_id)
 
                 except Exception as e:
-                    self.log_experiment_result(
-                        user_id, model_type, {}, f"error: {str(e)}"
-                    )
-                    results.append({"user_id": user_id, "status": f"error: {str(e)}"})
+                    json.dumps({"user_id": user_id,  "status": f"error: {str(e)}"}),
+                    mimetype="application/json",
+                    status=404,
+
 
             return Response(
-                json.dumps({"status": "success", "results": results}),
+                json.dumps({"status": "success"}),
                 mimetype="application/json",
                 status=200,
             )
@@ -216,7 +188,8 @@ class Gateway:
             )
 
     def log_experiment_result(
-        self, user_id: int, model_type: str, recommended_tracks: list, status: str, data_type: str
+        self, user_id: int, model_type: str, recommended_tracks: list, status: str, 
+        filename: str
     ):
         log_data = {
             "user_id": user_id,
@@ -224,10 +197,9 @@ class Gateway:
             "timestamp": datetime.now().isoformat(),
             "recommended_tracks": recommended_tracks,
             "status": status,
-            "data_type": data_type,
         }
 
-        with open("/app/data/ab_experiment_log.jsonl", "a") as log_file:
+        with open(f"/app/data/{filename}.jsonl", "a") as log_file:
             log_file.write(json.dumps(log_data) + "\n")
 
     def run(self, address, port, debug=False):
