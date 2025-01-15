@@ -46,6 +46,9 @@ BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
 
 MODEL_API_URL = "http://model_api:8080"
 
+RECOMENDED_TRACKS = 5
+COMPLEX_MODEL_CONTEXT_WINDOW = 50
+
 
 class Gateway:
     def __init__(self, app: Flask, **configs) -> None:
@@ -66,9 +69,7 @@ class Gateway:
             self.get_user_recomendations,
             methods=["GET"],
         )
-        self.add_endpoint(
-            "/api/test", "api/test", self.get_test_data, methods=["GET"]
-        )
+        self.add_endpoint("/api/test", "api/test", self.get_test_data, methods=["GET"])
         self.add_endpoint(
             "/api/embedding", "api/embedding", self.create_embeddings, methods=["POST"]
         )
@@ -135,11 +136,11 @@ class Gateway:
         best_tracks = sorted(
             list(embeddings),
             key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
-        )[:5]
+        )[:RECOMENDED_TRACKS]
         best_tracks = [{"id_track": track["id_track"]} for track in best_tracks]
         self.log_experiment_result(
-                user_id, model_type, best_tracks, "success",  'ab_experiment_log'
-            )
+            user_id, model_type, best_tracks, "success", "ab_experiment_log"
+        )
         return Response(
             json.dumps({"status": "success", "recomended_tracks": best_tracks}),
             mimetype="application/json",
@@ -160,19 +161,20 @@ class Gateway:
             if any(u == 1 and t == 1 for u, t in zip(user_genre, track_genre)):
                 new_embeddings.append(row)
         return new_embeddings
-    
 
     def get_test_data(self):
         try:
-            for  user_id in range(101, 1001):
+            for user_sesion_file in glob.glob(
+                "/app/data/sessions/sessions_user_*.jsonl"
+            ):
+                user_id = int(user_sesion_file.split("_")[-1].split(".")[0])
                 try:
                     self.get_user_recomendations(user_id)
 
                 except Exception as e:
-                    json.dumps({"user_id": user_id,  "status": f"error: {str(e)}"}),
-                    mimetype="application/json",
-                    status=404,
-
+                    json.dumps({"user_id": user_id, "status": f"error: {str(e)}"}),
+                    mimetype = ("application/json",)
+                    status = 404
 
             return Response(
                 json.dumps({"status": "success"}),
@@ -188,8 +190,12 @@ class Gateway:
             )
 
     def log_experiment_result(
-        self, user_id: int, model_type: str, recommended_tracks: list, status: str, 
-        filename: str
+        self,
+        user_id: int,
+        model_type: str,
+        recommended_tracks: list,
+        status: str,
+        filename: str,
     ):
         log_data = {
             "user_id": user_id,
@@ -317,7 +323,7 @@ class Gateway:
         user_sessions = sorted(
             [sesion for sesion in read_jsonl(user_sessions_file)],
             key=lambda x: x["timestamp"],
-        )[:50]
+        )[:COMPLEX_MODEL_CONTEXT_WINDOW]
         user_sessions = self.process_user_sesions(user_sessions)
         response = requests.post(
             MODEL_API_URL + "/predictions/recomendations_model",
