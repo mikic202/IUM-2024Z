@@ -31,6 +31,7 @@ def remove_premium_tag(user):
     user = user.drop("premium_user")
     return user
 
+
 def remove_genres(user):
     """
     Removes the genres of the user.
@@ -44,18 +45,32 @@ def replace_genre(user):
     Replace genres with the most popular genres.
     """
     keywords = [
-        'regional', 'reggaeton', 'k-pop', 'r&b', 'mellow',
-        'post-teen', 'corrido', 'ranchera', 'trap', 'latin',
-        'metal', 'dance', 'hip hop', 'country', 'rock', 'rap', 'pop'
+        "regional",
+        "reggaeton",
+        "k-pop",
+        "r&b",
+        "mellow",
+        "post-teen",
+        "corrido",
+        "ranchera",
+        "trap",
+        "latin",
+        "metal",
+        "dance",
+        "hip hop",
+        "country",
+        "rock",
+        "rap",
+        "pop",
     ]
-    
+
     mapped_genres = {
         keyword
-        for genre in user['favourite_genres']
+        for genre in user["favourite_genres"]
         for keyword in keywords
         if keyword in genre.lower()
     }
-    user['favourite_genres'] = list(mapped_genres) if mapped_genres else []
+    user["favourite_genres"] = list(mapped_genres) if mapped_genres else []
 
     return user
 
@@ -72,7 +87,9 @@ def extract_genre_to_hot_one(user):
     """
     Extracts the alterations of a track to a hot one encoding.
     """
-    hot_one_genre_encoding = generate_hot_one_encoding_form_genre(user["favourite_genres"])
+    hot_one_genre_encoding = generate_hot_one_encoding_form_genre(
+        user["favourite_genres"]
+    )
     user["genre_hot_one"] = hot_one_genre_encoding
     return user
 
@@ -82,9 +99,23 @@ def generate_hot_one_encoding_form_genre(genre):
     Generates a hot one encoding from the track genre.
     """
     chacked_types = [
-        'regional', 'reggaeton', 'k-pop', 'r&b', 'mellow',
-        'post-teen', 'corrido', 'ranchera', 'trap', 'latin',
-        'metal', 'dance', 'hip hop', 'country', 'rock', 'rap', 'pop',
+        "regional",
+        "reggaeton",
+        "k-pop",
+        "r&b",
+        "mellow",
+        "post-teen",
+        "corrido",
+        "ranchera",
+        "trap",
+        "latin",
+        "metal",
+        "dance",
+        "hip hop",
+        "country",
+        "rock",
+        "rap",
+        "pop",
     ]
     hot_one = []
     for chacked_type in chacked_types:
@@ -93,7 +124,6 @@ def generate_hot_one_encoding_form_genre(genre):
         else:
             hot_one.append(0)
     return hot_one
-
 
 
 if __name__ == "__main__":

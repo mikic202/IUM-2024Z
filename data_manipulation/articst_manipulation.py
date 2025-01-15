@@ -18,10 +18,11 @@ def add_index_hashing(artist):
     """
     Adds an index hashing to the artists.
     """
-    artist["id_artist_hash"] = int(hashlib.md5(artist["id"].encode()).hexdigest(), 16) % (
-        10**8
-    )
+    artist["id_artist_hash"] = int(
+        hashlib.md5(artist["id"].encode()).hexdigest(), 16
+    ) % (10**8)
     return artist
+
 
 def remove_names(artist):
     """
@@ -31,28 +32,39 @@ def remove_names(artist):
     return artist
 
 
-
-
 def replace_genre(artist):
     """
     Replace genres with the most popular genres.
     """
     keywords = [
-        'regional', 'reggaeton', 'k-pop', 'r&b', 'mellow',
-        'post-teen', 'corrido', 'ranchera', 'trap', 'latin',
-        'metal', 'dance', 'hip hop', 'country', 'rock', 'rap', 'pop'
+        "regional",
+        "reggaeton",
+        "k-pop",
+        "r&b",
+        "mellow",
+        "post-teen",
+        "corrido",
+        "ranchera",
+        "trap",
+        "latin",
+        "metal",
+        "dance",
+        "hip hop",
+        "country",
+        "rock",
+        "rap",
+        "pop",
     ]
-    
+
     mapped_genres = {
         keyword
-        for genre in artist['genres']
+        for genre in artist["genres"]
         for keyword in keywords
         if keyword in genre.lower()
     }
-    artist['genres'] = list(mapped_genres) if mapped_genres else []
+    artist["genres"] = list(mapped_genres) if mapped_genres else []
 
     return artist
-
 
 
 def add_genres_to_hot_one(artists):
@@ -77,9 +89,23 @@ def generate_hot_one_encoding_form_genre(genre):
     Generates a hot one encoding from the track genre.
     """
     chacked_types = [
-        'regional', 'reggaeton', 'k-pop', 'r&b', 'mellow',
-        'post-teen', 'corrido', 'ranchera', 'trap', 'latin',
-        'metal', 'dance', 'hip hop', 'country', 'rock', 'rap', 'pop',
+        "regional",
+        "reggaeton",
+        "k-pop",
+        "r&b",
+        "mellow",
+        "post-teen",
+        "corrido",
+        "ranchera",
+        "trap",
+        "latin",
+        "metal",
+        "dance",
+        "hip hop",
+        "country",
+        "rock",
+        "rap",
+        "pop",
     ]
     hot_one = []
     for chacked_type in chacked_types:
@@ -88,7 +114,6 @@ def generate_hot_one_encoding_form_genre(genre):
         else:
             hot_one.append(0)
     return hot_one
-
 
 
 if __name__ == "__main__":
