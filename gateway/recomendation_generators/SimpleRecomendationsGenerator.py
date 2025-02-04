@@ -10,6 +10,8 @@ class SimpleRecomendationsGenerator:
     def __init__(self, sessions_directory: Path, tracks_file: Path) -> None:
         self._sessions_directory = sessions_directory
         self._tracks_file = tracks_file
+        self._tracks = self._load_tracks()
+        self._user_sessions = {}
 
     def generate_recomendations(
         self,
@@ -21,10 +23,9 @@ class SimpleRecomendationsGenerator:
         reacent_track_embedding = self._get_reacent_track_embedding(
             user_id, embeddsings
         )
-        tracks_data = self._load_tracks()
         new_embeddings = []
         for i, row in enumerate(embeddsings):
-            track_genre = tracks_data[i]["genre_hot_one"]
+            track_genre = self._tracks[i]["genre_hot_one"]
             if any(
                 u == 1 and t == 1
                 for u, t in zip(user_favourite_geners_one_hot, track_genre)
@@ -55,4 +56,8 @@ class SimpleRecomendationsGenerator:
         return last_track["embedding"]
 
     def get_user_sessions(self, user_id: int) -> list[dict]:
-        return list(read_jsonl(str(self._sessions_directory) + f"{user_id}.jsonl"))
+        if user_id not in self._user_sessions:
+            self._user_sessions[user_id] = list(
+                read_jsonl(str(self._sessions_directory) + f"{user_id}.jsonl")
+            )
+        return self._user_sessions[user_id]

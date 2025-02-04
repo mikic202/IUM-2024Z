@@ -8,6 +8,8 @@ import heapq
 class ComplexRecomendationsGenerator:
     def __init__(self, preferences_file_path: Path) -> None:
         self._preferences_file_path = preferences_file_path
+        with open(self._preferences_file_path, "r") as f:
+            self._user_preferences = json.load(f)
 
     def generate_recomendations(
         self,
@@ -25,9 +27,7 @@ class ComplexRecomendationsGenerator:
         return None
 
     def get_user_preference_vector(self, user_id: int) -> Optional[list[float]]:
-        with open(self._preferences_file_path, "r") as f:
-            user_preferences = json.load(f)
-        for user_preference in user_preferences:
+        for user_preference in self._user_preferences:
             if int(user_preference["user_id"]) == int(user_id):
                 return user_preference["preferences"][0]
         return None
