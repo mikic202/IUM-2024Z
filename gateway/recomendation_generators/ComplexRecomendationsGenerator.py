@@ -4,6 +4,8 @@ import json
 import math
 import heapq
 
+from Dataclasses.Track import Track
+
 
 class ComplexRecomendationsGenerator:
     def __init__(self, preferences_file_path: Path) -> None:
@@ -14,16 +16,16 @@ class ComplexRecomendationsGenerator:
     def generate_recomendations(
         self,
         user_id: int,
-        embedsings: list[list[float]],
+        embedsings: list[Track],
         number_of_recomended_tracks: int,
     ) -> Optional[list[dict]]:
         if user_preferences := self.get_user_preference_vector(user_id):
             recomended_tracks = heapq.nsmallest(
                 number_of_recomended_tracks,
                 list(embedsings),
-                key=lambda x: abs(math.dist(x["embedding"], user_preferences)),
+                key=lambda x: abs(math.dist(x.embedding, user_preferences)),
             )
-            return [{"id_track": track["id_track"]} for track in recomended_tracks]
+            return [{"id_track": track.track_id} for track in recomended_tracks]
         return None
 
     def get_user_preference_vector(self, user_id: int) -> Optional[list[float]]:

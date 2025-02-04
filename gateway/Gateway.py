@@ -14,6 +14,8 @@ from recomendation_generators.ComplexRecomendationsGenerator import (
 from recomendation_generators.SimpleRecomendationsGenerator import (
     SimpleRecomendationsGenerator,
 )
+from Dataclasses.Track import Track
+from Dataclasses.User import User
 
 
 BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
@@ -29,7 +31,19 @@ class Gateway:
         self.app = app
         self.configs(**configs)
         with open("/app/data/embeddings.json") as f:
-            self.embeddings = json.load(f)
+            self._track_embeddings = json.load(f)
+        tracks_data = list(read_jsonl("/app/data/tracks_artists.jsonl"))
+        self._tracks = [
+            Track(track["id_track"], embedding["embedding"], track["genre_hot_one"])
+            for embedding, track in zip(self._track_embeddings, tracks_data)
+        ]
+
+        self._users = {
+            user_data["user_id"]: User(
+                user_data["user_id"], [], user_data["genre_hot_one"]
+            )
+            for user_data in list(read_jsonl("/app/data/users.jsonl"))
+        }
         self.add_endpoint("/api/status", "api/status", self.get_status, methods=["GET"])
         self.add_endpoint(
             "/api/user_model/<user_id>/get_user_preferences",
@@ -93,18 +107,13 @@ class Gateway:
         random.seed(datetime.now().timestamp())
         if hash(str(user_id)) % 2 == 0:
             model_type = "simple"
-            user_data = list(read_jsonl("/app/data/users.jsonl"))
-            user = next(
-                item for item in user_data if int(item["user_id"]) == int(user_id)
-            )
             recomendations = SimpleRecomendationsGenerator(
                 Path("/app/data/sessions/sessions_user_"),
                 Path("/app/data/tracks_artists.jsonl"),
             ).generate_recomendations(
-                user_id,
-                self.embeddings.copy(),
+                self._users[int(user_id)],
+                self._tracks.copy(),
                 RECOMENDED_TRACKS,
-                user["genre_hot_one"],
             )
         else:
             model_type = "complex"
@@ -112,7 +121,7 @@ class Gateway:
                 Path("/app/data/user_preferences.json")
             ).generate_recomendations(
                 user_id,
-                self.embeddings.copy(),
+                self._tracks.copy(),
                 RECOMENDED_TRACKS,
             )
 
@@ -207,7 +216,12 @@ class Gateway:
             with open("/app/data/embeddings.json", "w") as f:
                 json.dump(embeddings, f, indent=4)
 
-            self.embeddings = embeddings
+            self._track_embeddings = embeddings
+            tracks_data = list(read_jsonl("/app/data/tracks_artists.jsonl"))
+            self._tracks = [
+                Track(track["id_track"], embedding["embedding"], track["genre_hot_one"])
+                for embedding, track in zip(self._track_embeddings, tracks_data)
+            ]
 
             return Response(
                 json.dumps({"status": "success", "embeddings": embeddings}),
@@ -267,7 +281,10 @@ class Gateway:
     ) -> tuple[list[dict], list[dict]]:
         for sesion in sessions:
             tracks_embedings = list(
-                filter(lambda x: x["id_track"] == sesion["track_id"], self.embeddings)
+                filter(
+                    lambda x: x["id_track"] == sesion["track_id"],
+                    self._track_embeddings,
+                )
             )[0]
             sesion["timestamp"] = (
                 datetime.strptime(

@@ -5,6 +5,9 @@ from helpers.read_jsinl import read_jsonl
 import heapq
 import math
 
+from Dataclasses.Track import Track
+from Dataclasses.User import User
+
 
 class SimpleRecomendationsGenerator:
     def __init__(self, sessions_directory: Path, tracks_file: Path) -> None:
@@ -15,34 +18,31 @@ class SimpleRecomendationsGenerator:
 
     def generate_recomendations(
         self,
-        user_id: int,
-        embeddsings: list[list[float]],
+        user: User,
+        tracks: list[Track],
         number_of_recomended_tracks: int,
-        user_favourite_geners_one_hot: list[int],
     ) -> Optional[list[dict]]:
-        reacent_track_embedding = self._get_reacent_track_embedding(
-            user_id, embeddsings
-        )
-        new_embeddings = []
-        for i, row in enumerate(embeddsings):
-            track_genre = self._tracks[i]["genre_hot_one"]
+        reacent_track_embedding = self._get_reacent_track_embedding(user.id, tracks)
+        new_tracks = [
+            track
+            for track in tracks
             if any(
-                u == 1 and t == 1
-                for u, t in zip(user_favourite_geners_one_hot, track_genre)
-            ):
-                new_embeddings.append(row)
+                a == 1 and b == 1
+                for a, b in zip(user.favourite_genres, track.geners_one_hot)
+            )
+        ]
         recomended_tracks = heapq.nsmallest(
             number_of_recomended_tracks + 1,
-            list(embeddsings),
-            key=lambda x: abs(math.dist(x["embedding"], reacent_track_embedding)),
+            list(new_tracks),
+            key=lambda x: abs(math.dist(x.embedding, reacent_track_embedding)),
         )
-        return [{"id_track": track["id_track"]} for track in recomended_tracks][1:]
+        return [{"id_track": track.track_id} for track in recomended_tracks][1:]
 
     def _load_tracks(self) -> list[dict]:
         return list(read_jsonl(self._tracks_file))
 
     def _get_reacent_track_embedding(
-        self, user_id: int, embeddsings: list[list[float]]
+        self, user_id: int, embeddsings: list[Track]
     ) -> Optional[list[float]]:
         user_sessions = self.get_user_sessions(user_id)
         liked_tracks = filter(
@@ -50,10 +50,10 @@ class SimpleRecomendationsGenerator:
         )
         last_track_id = max(liked_tracks, key=lambda x: x["timestamp"])["track_id"]
         last_track = next(
-            (track for track in embeddsings if track["id_track"] == last_track_id),
+            (track for track in embeddsings if track.track_id == last_track_id),
             None,
         )
-        return last_track["embedding"]
+        return last_track.embedding
 
     def get_user_sessions(self, user_id: int) -> list[dict]:
         if user_id not in self._user_sessions:
