@@ -4,3 +4,4 @@ torch-workflow-archiver==0.2.15
 tqdm==4.66.2
 pandas==2.2.1
 scikit-learn==1.4.1
+ydata-profiling==4.12.2
