@@ -1,47 +1,21 @@
 from flask import Response, Flask
 import requests
-import json
 import math
 import random
 from datetime import datetime
 import glob
+import json
+from pathlib import Path
+
+from helpers.read_jsinl import read_jsonl
+from recomendation_generators.ComplexRecomendationsGenerator import (
+    ComplexRecomendationsGenerator,
+)
+from recomendation_generators.SimpleRecomendationsGenerator import (
+    SimpleRecomendationsGenerator,
+)
 
 
-def read_jsonl(file_path):
-    with open(file_path, "r") as f:
-        for line in f:
-            yield json.loads(line)
-
-
-def get_embeding_to_compare_for_advanced_model(user_id: int):
-    user_preferences = json.load(open("/app/data/user_preferences.json", "r"))
-    for user_preference in user_preferences:
-        if int(user_preference["user_id"]) == int(user_id):
-            return user_preference["preferences"][0]
-    return None
-
-
-def get_embeding_to_compare_for_simple_model(user_id: int):
-    track_embeddings = json.load(open("/app/data/embeddings.json", "r"))
-    user_session = list(read_jsonl(f"/app/data/sessions/sessions_user_{user_id}.jsonl"))
-
-    filtered_data = [
-        session for session in user_session if session["event_type"] == "like"
-    ]
-    last_liked_track = max(filtered_data, key=lambda x: x["timestamp"])
-    last_track_id = last_liked_track["track_id"]
-    track_row = next(
-        (track for track in track_embeddings if track["id_track"] == last_track_id),
-        None,
-    )
-    embedding_last_liked = track_row["embedding"]
-    return (embedding_last_liked, last_track_id)
-
-
-MODEL_TYPES = {
-    "simple": get_embeding_to_compare_for_simple_model,
-    "complex": get_embeding_to_compare_for_advanced_model,
-}
 BASE_DATE = datetime.strptime("2025-01-03", "%Y-%m-%d").timestamp()
 
 MODEL_API_URL = "http://model_api:8080"
@@ -117,50 +91,39 @@ class Gateway:
 
     def get_user_recomendations(self, user_id: int):
         random.seed(datetime.now().timestamp())
-        if random.random() < 0.5:
+        if hash(str(user_id)) % 2 == 0:
             model_type = "simple"
+            user_data = list(read_jsonl("/app/data/users.jsonl"))
+            user = next(
+                item for item in user_data if int(item["user_id"]) == int(user_id)
+            )
+            recomendations = SimpleRecomendationsGenerator(
+                Path("/app/data/sessions/sessions_user_"),
+                Path("/app/data/tracks_artists.jsonl"),
+            ).generate_recomendations(
+                user_id,
+                self.embeddings.copy(),
+                RECOMENDED_TRACKS,
+                user["genre_hot_one"],
+            )
         else:
             model_type = "complex"
-        embeddings = self.embeddings.copy()
-        embeding_to_compare = MODEL_TYPES[model_type](user_id)
-        if model_type == "simple":
-            id_track = embeding_to_compare[1]
-            embeding_to_compare = embeding_to_compare[0]
-            embeddings_with_specific_geners = (
-                self.remove_non_fitting_embedings_for_user(
-                    embeddings, user_id, id_track
-                )
+            recomendations = ComplexRecomendationsGenerator(
+                Path("/app/data/user_preferences.json")
+            ).generate_recomendations(
+                user_id,
+                self.embeddings.copy(),
+                RECOMENDED_TRACKS,
             )
-            embeddings = embeddings_with_specific_geners
 
-        best_tracks = sorted(
-            list(embeddings),
-            key=lambda x: abs(math.dist(x["embedding"], embeding_to_compare)),
-        )[:RECOMENDED_TRACKS]
-        best_tracks = [{"id_track": track["id_track"]} for track in best_tracks]
         self.log_experiment_result(
-            user_id, model_type, best_tracks, "success", "ab_experiment_log"
+            user_id, model_type, recomendations, "success", "ab_experiment_log"
         )
         return Response(
-            json.dumps({"status": "success", "recomended_tracks": best_tracks}),
+            json.dumps({"status": "success", "recomended_tracks": recomendations}),
             mimetype="application/json",
             status=200,
         )
-
-    def remove_non_fitting_embedings_for_user(self, embeddings, user_id, id_track):
-        user_data = list(read_jsonl("/app/data/users.jsonl"))
-        tracks_data = list(read_jsonl("/app/data/tracks_artists.jsonl"))
-
-        new_embeddings = []
-        user = next(item for item in user_data if int(item["user_id"]) == int(user_id))
-        user_genre = user["genre_hot_one"]
-        for i, row in enumerate(embeddings):
-            if row["id_track"] == id_track:
-                continue
-            track_genre = tracks_data[i]["genre_hot_one"]
-            if any(u == 1 and t == 1 for u, t in zip(user_genre, track_genre)):
-                new_embeddings.append(row)
-        return new_embeddings
 
     def get_test_data(self):
         try:
