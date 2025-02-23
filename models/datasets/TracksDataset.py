@@ -16,6 +16,6 @@ class TracksDataset(Dataset):
 
     def __getitem__(self, idx):
         unpacked_data = (
-            self.data.iloc[idx].drop("id_track").explode().values.astype(np.float64)
+            self.data.iloc[idx].drop("id_track").explode().values.astype(np.float32)
         )
         return torch.from_numpy(unpacked_data)
